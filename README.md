@@ -417,10 +417,10 @@ BioSync-AI Development Team:
 
 RunTime Slayers (Team Name)
 Team members:
-B.Rajendra Reddy(CB.AI.4AIM24107): Component Selection
-Boddu Saran(CB.AI.U4AIM24108):GitHub preparation 
-Muthuraman Ramanthan(CB.AI.U4AIM24131): Idea Improvements
-K S S S Srihari Likith(CB.AI.U4AIM24152): Wokwi Simulation
+B.Rajendra Reddy(CB.AI.4AIM24107): Component Selection, 
+Boddu Saran(CB.AI.U4AIM24108):GitHub preparation, 
+Muthuraman Ramanthan(CB.AI.U4AIM24131): Idea Improvements, 
+K S S S Srihari Likith(CB.AI.U4AIM24152): Wokwi Simulation.
 
 Acknowledgments:
 - Wokwi team for excellent ESP32 simulator
