@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "author": "Анна Харабай",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-s3-devkitc-1", "id": "esp", "top": 86.22, "left": -14.63, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -49.3, "left": -163.4, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "sw1", "top": 186.8, "left": -150.5, "attrs": {} },
+    {
+      "type": "wokwi-led-ring",
+      "id": "ring1",
+      "top": 77.44,
+      "left": 145.19,
+      "attrs": { "pixels": "16" }
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled1",
+      "top": -64.06,
+      "left": -28.57,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": 304.5,
+      "left": 263.7,
+      "rotate": 90,
+      "attrs": { "volume": "0.1" }
+    },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": -47.8, "left": 163.2, "attrs": {} },
+    {
+      "type": "wokwi-led-bar-graph",
+      "id": "bargraph1",
+      "top": 81.6,
+      "left": 350.4,
+      "attrs": { "color": "lime" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "oled1:VCC", "esp:3V3.1", "red", [ "v-19.2", "h-57.45", "v192" ] ],
+    [ "oled1:GND", "esp:GND.2", "black", [ "v-9.6", "h76.8", "v182.4" ] ],
+    [ "oled1:SDA", "esp:8", "green", [ "v-28.8", "h-86.33", "v307.2" ] ],
+    [ "oled1:SCL", "esp:9", "green", [ "v-19.2", "h-86.1", "v326.4" ] ],
+    [ "pot1:VCC", "esp:3V3.2", "red", [ "v0" ] ],
+    [ "pot1:SIG", "esp:4", "green", [ "v0" ] ],
+    [ "pot1:GND", "esp:GND.1", "black", [ "v144", "h67.2", "v153.6" ] ],
+    [ "ring1:GND", "esp:GND.4", "black", [ "v0" ] ],
+    [ "ring1:VCC", "esp:5V", "red", [ "v153.6", "h-240", "v-67.2" ] ],
+    [ "ring1:DIN", "esp:5", "green", [ "v38.4", "h-96", "v-182.4", "h-134.4", "v76.8" ] ],
+    [ "sw1:1", "esp:GND.1", "green", [ "v96" ] ],
+    [ "sw1:2", "esp:7", "green", [ "v38.4", "h96.1", "v-86.4" ] ],
+    [ "esp:10", "bz1:2", "green", [ "h-38.45", "v105.6", "h336" ] ],
+    [ "bz1:1", "esp:GND.4", "green", [ "v28.8" ] ],
+    [ "relay1:IN", "esp:13", "green", [ "h-28.8", "v76.6", "h-163.2", "v220.8" ] ],
+    [ "relay1:VCC", "esp:5V", "red", [ "h-76.8", "v412.8", "h-105.6", "v-76.8" ] ],
+    [ "relay1:GND", "esp:GND.2", "black", [ "h-48", "v-0.4" ] ],
+    [ "bargraph1:A1", "esp:14", "green", [ "h-28.8", "v153.6", "h-384", "v-96" ] ],
+    [ "bargraph1:A2", "esp:15", "green", [ "h-19.2", "v163.2", "h-374.4", "v-230.4" ] ],
+    [ "bargraph1:A3", "esp:16", "green", [ "h-9.6", "v163.2", "h-384", "v-230.4" ] ],
+    [ "bargraph1:A4", "esp:17", "green", [ "h-19.2", "v153.6", "h-412.8", "v-19.2" ] ],
+    [ "bargraph1:A5", "esp:18", "green", [ "h-38.4", "v163.19", "h-364.8", "v-230.4" ] ],
+    [ "bargraph1:C1", "relay1:NO", "green", [ "v0" ] ],
+    [ "bargraph1:C2", "relay1:NO", "green", [ "h9.82", "v-249.6" ] ],
+    [ "bargraph1:C3", "relay1:NO", "green", [ "h19.42", "v-268.8" ] ],
+    [ "bargraph1:C5", "relay1:NO", "green", [ "h29.02", "v-288.01" ] ],
+    [ "relay1:COM", "esp:GND.2", "green", [ "h20.4", "v85", "h-163.2", "v48" ] ],
+    [ "bargraph1:C4", "relay1:NO", "green", [ "h38.62", "v-124.8" ] ]
+  ],
+  "dependencies": {}
+}
