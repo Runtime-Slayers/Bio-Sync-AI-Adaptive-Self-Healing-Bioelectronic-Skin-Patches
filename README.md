@@ -141,9 +141,9 @@ Install these via Wokwi Library Manager:
 
 **BioSync-AI Development Team: RunTime Slayers**
 
-* **B.Rajendra Reddy** (CB.AI.4AIM24107): Component Selection
-* **Boddu Saran** (CB.AI.U4AIM24108): GitHub Preparation
-* **Muthuraman Ramanthan** (CB.AI.U4AIM24131): Idea Improvements
+* **B.Rajendra Reddy** (CB.AI.4AIM24107): C++ source code
+* **Boddu Saran** (CB.AI.U4AIM24108): Embedded Systems & Safety protocols
+* **Muthuraman Ramanthan** (CB.AI.U4AIM24131): Biomedical Signal Processing Lead
 * **K S S S Srihari Likith** (CB.AI.U4AIM24152): Wokwi Simulation Architecture
 
 ---
