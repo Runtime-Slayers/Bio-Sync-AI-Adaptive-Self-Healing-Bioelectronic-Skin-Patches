@@ -149,6 +149,7 @@ Install these via Wokwi Library Manager:
 ---
 ## Quick Links:
 https://wokwi.com/projects/451863690475356161
+## New Wokwi Simulation link: https://wokwi.com/projects/452102243397876737
 ## Source Code
 
 ```cpp
