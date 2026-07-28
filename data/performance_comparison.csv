@@ -1,0 +1,5 @@
+Metric,BioSync-AI,Fitbit/Apple Watch,Traditional Med. Pumps
+Anomaly Det. Accuracy (%),98.4,62.0,70.0
+Detection Latency (ms),8.4,320.0,480.0
+Drug Dose Accuracy (%),97.2,0.0,78.0
+Prediction Confidence (%),98.4,55.0,68.0

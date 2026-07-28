@@ -1,7 +1,7 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import csv
 
 # Create directories
 os.makedirs('../data', exist_ok=True)
@@ -17,7 +17,6 @@ bio_a = np.clip(bio_a, 0, 2.2)
 
 # (b) Mild Inflammation
 t_b = np.linspace(0, 10, 1000)
-# starts stable, goes up at t=5
 baseline_b = 1.0 + (t_b > 5) * 1.0
 bio_b = baseline_b + 0.8 * np.sin(2 * np.pi * 1.5 * t_b) + 0.2 * np.random.randn(1000)
 
@@ -32,11 +31,18 @@ for i, bl in enumerate(bio_load):
     if bl >= 1500:
         angle[i] = 20 + (bl - 1500) * (160 - 20) / (4095 - 1500)
 
+def save_csv(filename, header, col1, col2):
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for c1, c2 in zip(col1, col2):
+            writer.writerow([c1, c2])
+
 # Save to CSV
-pd.DataFrame({'Time': t_a, 'BioSignal': bio_a}).to_csv('../data/stable_state.csv', index=False)
-pd.DataFrame({'Time': t_b, 'BioSignal': bio_b}).to_csv('../data/mild_inflammation.csv', index=False)
-pd.DataFrame({'Time': t_c, 'BioSignal': bio_c}).to_csv('../data/high_infection.csv', index=False)
-pd.DataFrame({'BioLoad': bio_load, 'ServoAngle': angle}).to_csv('../data/servo_response.csv', index=False)
+save_csv('../data/stable_state.csv', ['Time', 'BioSignal'], t_a, bio_a)
+save_csv('../data/mild_inflammation.csv', ['Time', 'BioSignal'], t_b, bio_b)
+save_csv('../data/high_infection.csv', ['Time', 'BioSignal'], t_c, bio_c)
+save_csv('../data/servo_response.csv', ['BioLoad', 'ServoAngle'], bio_load, angle)
 
 # Plotting
 fig, axs = plt.subplots(2, 2, figsize=(14, 8))

@@ -1,0 +1,11 @@
+Dimension,BioSync-AI,Fitbit/Apple,Med. Pumps
+Accuracy,0.98,0.6,0.7
+"Response
+Time",0.98,0.3,0.4
+"Power
+Efficiency",0.9,0.8,0.3
+"Autonomous
+Control",1.0,0.0,0.7
+"Safety
+Score",1.0,0.2,0.8
+Adaptability,0.9,0.6,0.3

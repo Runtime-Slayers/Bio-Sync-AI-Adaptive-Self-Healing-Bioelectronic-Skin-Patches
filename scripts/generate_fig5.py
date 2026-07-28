@@ -1,7 +1,7 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from math import pi
+import csv
 
 # Data
 categories = ['Accuracy', 'Response\nTime', 'Power\nEfficiency', 'Autonomous\nControl', 'Safety\nScore', 'Adaptability']
@@ -11,13 +11,11 @@ values_biosync = [0.98, 0.98, 0.90, 1.00, 1.00, 0.90]
 values_fitbit = [0.60, 0.30, 0.80, 0.00, 0.20, 0.60]
 values_pumps = [0.70, 0.40, 0.30, 0.70, 0.80, 0.30]
 
-df = pd.DataFrame({
-    'Dimension': categories,
-    'BioSync-AI': values_biosync,
-    'Fitbit/Apple': values_fitbit,
-    'Med. Pumps': values_pumps
-})
-df.to_csv('../data/radar_comparison.csv', index=False)
+with open('../data/radar_comparison.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['Dimension', 'BioSync-AI', 'Fitbit/Apple', 'Med. Pumps'])
+    for c, b, fb, p in zip(categories, values_biosync, values_fitbit, values_pumps):
+        writer.writerow([c, b, fb, p])
 
 # Plotting
 angles = [n / float(N) * 2 * pi for n in range(N)]
