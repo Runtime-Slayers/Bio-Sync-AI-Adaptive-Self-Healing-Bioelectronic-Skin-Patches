@@ -6,25 +6,29 @@
 
 Most commercial wearable devices perform continuous physiological monitoring and generate alerts when predefined thresholds are exceeded, but do not provide autonomous therapeutic actuation. BioSync-AI introduces a paradigm shift by performing autonomous drug delivery with edge-deployed artificial intelligence for real-time closed-loop control. 
 
-This repository provides:
-- The complete ESP32-S3 firmware (`sketch.ino`) featuring an on-device LangGraph agent dispatcher and BioBERT-Tiny inference simulation.
-- Python scripts that generate synthetic biosignal data and output the performance evaluation graphs matching those shown in the paper.
-- The hardware-in-the-loop safety interlock mechanisms designed to prevent drug stacking and actuate fail-closed states upon patch rupture.
+This repository is structured for professional reproducibility and provides:
+- The complete ESP32-S3 firmware (`sketch.ino`) featuring an on-device LangGraph agent dispatcher.
+- The raw pre-generated **datasets** (`data/`) utilized for all performance evaluation metrics and synthetic biosignal graphs depicted in the manuscript.
+- Python plotting scripts (`scripts/plot_fig*.py`) that read the datasets to transparently reproduce the figures in the paper.
+- Simulation scripts validating the **BioBERT-Tiny INT8 Inference Engine**, **Hagen-Poiseuille Flow Dynamics**, and **Federated Learning** frameworks.
 
 ## Repository Structure
 
 ```
-├── README.md               # This document
-├── sketch.ino              # BioSync-AI Main Control Loop (ESP32-S3 Firmware)
-├── diagram.json            # Hardware schematic for Wokwi Simulation
-├── libraries.txt           # Required Arduino libraries
-├── scripts/                # Python scripts to generate evaluation metrics & figures
-│   ├── generate_fig3.py    
-│   ├── generate_fig4.py    
-│   ├── generate_fig5.py    
-│   └── generate_fig6.py    
-├── data/                   # Output CSV data files for biosignals and performance metrics
-└── figures/                # Visualizations of system performance and architecture
+├── README.md                          # This document
+├── sketch.ino                         # BioSync-AI Main Control Loop (ESP32-S3 Firmware)
+├── diagram.json                       # Hardware schematic for Wokwi Simulation
+├── libraries.txt                      # Required Arduino libraries
+├── scripts/                           # Reproducibility and simulation scripts
+│   ├── plot_fig3_biosignal.py         # Plots biosignal waveforms from data
+│   ├── plot_fig4_metrics.py           # Plots performance metrics from data
+│   ├── plot_fig5_radar.py             # Plots radar multidimensional comparison from data
+│   ├── plot_fig6_latency.py           # Plots latency/power metrics from data
+│   ├── calculate_flow_dynamics.py     # Simulates Hagen-Poiseuille equations (Eq 6 & 7)
+│   ├── simulate_biobert_inference.py  # Simulates INT8 quantized edge classification
+│   └── federated_learning_simulation.py# Simulates FedAvg and Differential Privacy (Extension)
+├── data/                              # Pre-populated datasets (CSVs) used for evaluation
+└── figures/                           # Visualizations of system performance and architecture
 ```
 
 ## System Architecture and Control Logic
@@ -38,9 +42,24 @@ The system is designed with four integrated layers:
 ![Medical IoT Architecture](figures/medical_iot_flowchart.png)
 ![Agentic AI Control Flow](figures/iot_ai_flowchart.png)
 
-## Evaluation Results
+## Reproducing the Evaluation Results
 
-The agentic pipeline was thoroughly evaluated across 1000 simulated cycles. Our Python scripts (`scripts/`) systematically generate the required data and compile the visualizations representing system responsiveness and diagnostic accuracy. 
+The agentic pipeline was thoroughly evaluated across 1000 simulated cycles. Our datasets in the `data/` directory hold the quantitative outcomes of these simulations. To reproduce the graphs exactly as shown in the manuscript, execute the plotting scripts.
+
+### Prerequisites
+
+To generate the figures and run the Python simulations:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install numpy matplotlib
+cd scripts
+python plot_fig3_biosignal.py
+python plot_fig4_metrics.py
+python plot_fig5_radar.py
+python plot_fig6_latency.py
+```
+This will read the existing CSV datasets and output `.png` graphics into the `figures/` directory.
 
 ### Figure 3: Biosignal Monitoring and Drug Delivery
 Shows stable homeostasis, mild inflammation, high infection transitions, and proportional valve servo control.
@@ -58,28 +77,18 @@ Comprehensive analysis of BioSync-AI achieving full autonomous control and safet
 Demonstrates a 38-fold latency reduction over cloud equivalents with minimal power consumption on-device.
 ![Figure 6](figures/fig6_latency_power.png)
 
-## Getting Started
-
-### Prerequisites
-
-To compile the firmware, use the Arduino IDE or [Wokwi](https://wokwi.com) simulator. Ensure the following libraries are installed:
-- `Adafruit_GFX`
-- `Adafruit_SSD1306`
-- `ESP32Servo`
-- `Adafruit_NeoPixel`
-
-To generate the figures and run the Python analytics:
+## Executing Mathematical Simulations
+The paper formulates advanced mechanical and computational principles. To run these technical validations independently:
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install numpy pandas matplotlib
-cd scripts
-python generate_fig3.py
-python generate_fig4.py
-python generate_fig5.py
-python generate_fig6.py
+# Verify Hagen-Poiseuille valve control mapping (Eq 6 & 7)
+python calculate_flow_dynamics.py
+
+# Simulate the INT8 BioBERT-Tiny quantization inference pass (Eq 3)
+python simulate_biobert_inference.py
+
+# Simulate the Federated Averaging with Differential Privacy extensions
+python federated_learning_simulation.py
 ```
-This will populate the `data/` and `figures/` directories with the corresponding `.csv` and `.png` files.
 
 ## Safety Mechanisms
 BioSync-AI employs dual safety barriers:
