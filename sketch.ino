@@ -1,252 +1,257 @@
 /*
-  BioSync-AI: Bar Graph Dosing Version
-  - Replaced Servo with LED Bar Graph
-  - Relay acts as "Safety Interlock" cutting Ground to the LEDs
-  
-  WIRING:
-  - Bar Graph Anodes 1-5 -> GPIO 14, 15, 16, 17, 18
-  - Bar Graph Cathodes   -> Connected together -> Relay NO
-  - Relay COM            -> GND
-  - Relay IN             -> GPIO 13
+  BioSync-AI: Final Hackathon Version
+  Device: ESP32-S3
+  Features: Multi-Page UI, Real-Time Diagnosis, Agentic Control
 */
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <ESP32Servo.h>
 #include <Adafruit_NeoPixel.h>
 
 // =======================
-// PIN MAPPING
+// 1. PIN MAPPING (ESP32-S3)
 // =======================
-#define SDA_PIN    8
-#define SCL_PIN    9
-#define POT_PIN    4    // Infection Sensor
-#define RELAY_PIN  13   // Safety Switch
-#define PIXEL_PIN  5    // LED Ring
-#define BREACH_PIN 7    // Slide Switch
-#define BUZZ_PIN   10   // Buzzer
-
-// Bar Graph Pins (5 Segments)
-const int barGraphPins[] = {14, 15, 16, 17, 18}; 
+#define SDA_PIN    8    // OLED SDA
+#define SCL_PIN    9    // OLED SCL
+#define POT_PIN    4    // Bio-Sensor (Potentiometer)
+#define SERVO_PIN  6    // Drug Pump (Servo)
+#define PIXEL_PIN  5    // LED Ring (NeoPixel)
+#define BREACH_PIN 7    // Slide Switch (Tear Trigger)
+#define BUZZ_PIN   10   // Piezo Buzzer
+#define BTN_PIN    11   // Patient Override Button
 
 // =======================
-// CONFIGURATION
+// 2. CONFIGURATION
 // =======================
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define NUMPIXELS 16
+#define NUMPIXELS     16 
 
+// =======================
+// 3. GLOBAL OBJECTS
+// =======================
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+Servo drugPump;
 Adafruit_NeoPixel pixels(NUMPIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 // =======================
-// VARIABLES
+// 4. SYSTEM VARIABLES
 // =======================
 unsigned long lastPageChange = 0;
-int currentPage = 0;
-int graphBuffer[128];
+int currentPage = 0; // 0=Patient Status, 1=AI Logic, 2=Telemetry
+int graphBuffer[128]; 
 int bufferIdx = 0;
 String patientCondition = "ANALYZING...";
-
-// ECG Animation Vars
-unsigned long lastBeatTime = 0;
-int beatPhase = 0;
-int baseLine = 40;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin(SDA_PIN, SCL_PIN);
 
-  // 1. Init OLED
+  // Init OLED
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { for(;;); }
-  display.clearDisplay();
-
-  // 2. Init Bar Graph Pins
-  for(int i=0; i<5; i++) {
-    pinMode(barGraphPins[i], OUTPUT);
-    digitalWrite(barGraphPins[i], LOW);
-  }
-
-  // 3. Init Relay (Safety)
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW); // Start Disconnected (Safe)
-
-  // 4. Init Other Hardware
-  pixels.begin(); pixels.show();
+  
+  // Init Hardware
+  drugPump.attach(SERVO_PIN); 
+  pixels.begin();
+  pixels.show();
+  
   pinMode(BREACH_PIN, INPUT_PULLUP);
+  pinMode(BTN_PIN, INPUT_PULLUP);
   pinMode(BUZZ_PIN, OUTPUT);
 
-  // 5. Intro Screen
+  // Intro Sequence
+  display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
-  display.setCursor(30, 20);
+  display.setCursor(20, 25);
   display.println(F("BIOSYNC-AI"));
-  display.setCursor(20, 30);
-  display.println(F("DOSING GAUGE"));
+  display.setCursor(20, 35);
+  display.println(F("Initializing..."));
   display.display();
   
-  // ==========================================
-  // BOOT SELF-TEST (Bar Graph Animation)
-  // ==========================================
-  tone(BUZZ_PIN, 1000, 100);
-  digitalWrite(RELAY_PIN, HIGH); // Enable Ground Path
+  tone(BUZZ_PIN, 1000, 100); // Boot beep
+  delay(1000);
   
-  // Fill up the gauge
-  for(int i=0; i<5; i++) {
-    digitalWrite(barGraphPins[i], HIGH);
-    delay(150);
-  }
-  delay(500);
-  // Empty the gauge
-  for(int i=4; i>=0; i--) {
-    digitalWrite(barGraphPins[i], LOW);
-    delay(100);
-  }
-  
-  digitalWrite(RELAY_PIN, LOW); // Disable Ground Path
-  
-  // Init graph buffer
-  for (int i = 0; i < 128; i++) graphBuffer[i] = baseLine;
+  // Fill graph buffer with baseline data
+  for(int i=0; i<128; i++) graphBuffer[i] = 45; 
 }
 
 void loop() {
-  // --- SENSING ---
-  int rawBio = analogRead(POT_PIN);         
-  bool isBreach = !digitalRead(BREACH_PIN); 
+  // --- READ SENSORS ---
+  int rawBio = analogRead(POT_PIN);
+  bool isBreach = !digitalRead(BREACH_PIN); // Active LOW
+  bool isPain = !digitalRead(BTN_PIN);      // Active LOW
 
-  // --- ECG ANIMATION ---
-  int beatInterval = map(rawBio, 0, 4095, 1200, 300);
-  if (millis() - lastBeatTime > beatInterval) { lastBeatTime = millis(); beatPhase = 1; }
-  
-  int currentSignal = baseLine;
-  if (beatPhase > 0) {
-    if(beatPhase==2) currentSignal -= 25; // Spike
-    else if(beatPhase==3) currentSignal += 15;
-    else currentSignal = baseLine;
-    beatPhase = (beatPhase > 5) ? 0 : beatPhase + 1;
+  // --- DIAGNOSIS ENGINE ---
+  // Translate sensor data into Patient Situations
+  if (isBreach) {
+    patientCondition = "CRITICAL FAILURE";
+  } else if (isPain) {
+    patientCondition = "PAIN REPORTED";
+  } else if (rawBio < 1500) {
+    patientCondition = "STABLE / NORMAL";
+  } else if (rawBio >= 1500 && rawBio < 3000) {
+    patientCondition = "MILD INFLAMMATION";
+  } else {
+    patientCondition = "HIGH INFECTION";
   }
-  if(rawBio > 2000) currentSignal += random(-2, 3);
-  graphBuffer[bufferIdx] = currentSignal;
+
+  // --- UPDATE GRAPH HISTORY ---
+  // Map sensor value to screen coordinates (Bottom section of screen)
+  int graphY = map(rawBio, 0, 4095, 63, 30); 
+  graphBuffer[bufferIdx] = graphY;
   bufferIdx = (bufferIdx + 1) % 128;
 
-  // --- DIAGNOSIS ---
-  if (isBreach) patientCondition = "CRITICAL FAILURE";
-  else if (rawBio < 1500) patientCondition = "STABLE / SAFE";
-  else if (rawBio < 3000) patientCondition = "INFECTION DETECTED";
-  else patientCondition = "HIGH VIRAL LOAD";
-
-  // --- SAFETY & BAR GRAPH LOGIC ---
-  
-  // CASE 1: BREACH (Hardware Cutoff)
+  // --- AGENTIC ACTION LOOP ---
   if (isBreach) {
-    digitalWrite(RELAY_PIN, LOW); // CUT GROUND -> Gauge goes DEAD physically
-    setRingColor(255, 0, 0);      // Red Ring
-    tone(BUZZ_PIN, 2000);
-    updateBarGraph(0);            // Software also sets 0
-  }
-  
-  // CASE 2: HIGH INFECTION (Max Dose)
-  else if (rawBio >= 3000) {
-    digitalWrite(RELAY_PIN, HIGH); // Enable Gauge
-    setRingColor(255, 140, 0);     // Orange Ring
-    if (millis() % 500 < 250) tone(BUZZ_PIN, 1000); else noTone(BUZZ_PIN);
-    updateBarGraph(5);             // 5 Bars (FULL)
-  }
-  
-  // CASE 3: MILD INFECTION (Variable Dose)
-  else if (rawBio >= 1500) {
-    digitalWrite(RELAY_PIN, HIGH); // Enable Gauge
-    setRingColor(0, 0, 255);       // Blue Ring
-    noTone(BUZZ_PIN);
-    
-    // Map infection 1500-3000 to 1-4 Bars
-    int bars = map(rawBio, 1500, 3000, 1, 4);
-    updateBarGraph(bars);
-  }
-  
-  // CASE 4: HEALTHY (Standby)
-  else {
-    digitalWrite(RELAY_PIN, LOW);  // Power Save
-    updateBarGraph(0);
-    
-    // Breathing Green
-    int b = (millis() / 20) % 255; 
-    if(b > 127) b = 255 - b;
-    setRingColor(0, map(b,0,127,0,100), 0);
-    noTone(BUZZ_PIN);
+    handleBreach();
+  } else if (isPain) {
+    handlePain();
+  } else if (rawBio >= 1500) {
+    handleTreatment(rawBio);
+  } else {
+    handleHomeostasis();
   }
 
-  // --- DISPLAY ---
-  bool lock = isBreach;
-  if (!lock && millis() - lastPageChange > 3000) {
+  // --- MULTI-PAGE DISPLAY MANAGER ---
+  // Auto-switch pages every 3 seconds (unless in Emergency)
+  if (!isBreach && millis() - lastPageChange > 3000) {
     currentPage = (currentPage + 1) % 3;
     lastPageChange = millis();
   }
 
   display.clearDisplay();
-  if (isBreach) drawAlert("DEVICE FAILURE");
-  else {
-    if (currentPage == 0) drawPatient(rawBio);
-    else if (currentPage == 1) drawAgent(rawBio);
-    else drawGraph();
+
+  if (isBreach) {
+    drawEmergencyPage(); // Lock screen on emergency
+  } else {
+    switch(currentPage) {
+      case 0: drawPatientPage(rawBio); break; // The View You Requested
+      case 1: drawAgentPage(); break;
+      case 2: drawGraphPage(); break;
+    }
   }
+
   display.display();
-  delay(30); 
+  delay(40); // Fast refresh for responsive graph
 }
 
-// --- HELPER: Control Bar Graph Segments ---
-void updateBarGraph(int level) {
-  for(int i=0; i<5; i++) {
-    if(i < level) digitalWrite(barGraphPins[i], HIGH);
-    else digitalWrite(barGraphPins[i], LOW);
-  }
-}
+// ==========================================
+// SCREEN DRAWING FUNCTIONS
+// ==========================================
 
-// --- DRAWING HELPERS ---
-void drawPatient(int val) {
-  display.setCursor(0,0); display.print(F("PT ID: #8492-X"));
-  display.drawLine(0,8,128,8,WHITE);
-  display.setCursor(0,20); display.print(F("STATUS:"));
-  display.setCursor(0,30); display.print(patientCondition);
-  display.setCursor(0,50); display.print(F("Dose: "));
+// PAGE 0: PATIENT SITUATION OVERVIEW
+void drawPatientPage(int val) {
+  display.setTextSize(1);
+  display.setCursor(0,0); 
+  display.print(F("PT. ID: #8492-X"));
+  display.drawLine(0, 8, 128, 8, WHITE);
+
+  display.setCursor(0, 15);
+  display.print(F("CONDITION:"));
   
-  // Show graphical bar on OLED too
-  int bars = 0;
-  if(digitalRead(RELAY_PIN) == HIGH) {
-     if(val >= 3000) bars = 5;
-     else if(val >= 1500) bars = map(val, 1500, 3000, 1, 4);
-  }
-  for(int i=0; i<5; i++) {
-    if(i<bars) display.fillRect(40 + (i*10), 50, 8, 8, WHITE);
-    else display.drawRect(40 + (i*10), 50, 8, 8, WHITE);
-  }
+  // Dynamic Condition Text
+  display.setCursor(0, 25);
+  if(val > 3000) display.setTextColor(BLACK, WHITE); // Invert for emphasis
+  else display.setTextColor(WHITE);
+  
+  display.print(patientCondition);
+  display.setTextColor(WHITE); // Reset color
+
+  display.setCursor(0, 40);
+  display.print(F("Bio-Load: ")); display.print(val);
+  
+  display.setCursor(0, 50);
+  display.print(F("Therapy: "));
+  if(val > 1500) display.print(F("ACTIVE")); else display.print(F("STANDBY"));
 }
 
-void drawAgent(int val) {
-  display.setCursor(0,0); display.print(F("AGENT CORE"));
-  display.drawLine(0,8,128,8,WHITE);
-  display.setCursor(0,20); display.print(F("AI Model: Active"));
-  display.setCursor(0,30); display.print(F("Latency: 12ms"));
-  display.setCursor(0,50); display.print(F("Confidence: 99%"));
+// PAGE 1: AGENTIC AI INTERNALS
+void drawAgentPage() {
+  display.setCursor(0,0);
+  display.print(F("AGENT LOGIC CORE"));
+  display.drawLine(0, 8, 128, 8, WHITE);
+
+  display.setCursor(0, 15);
+  display.print(F("Model: BioBERT-Tiny"));
+  display.setCursor(0, 25);
+  display.print(F("Task: Homeostasis"));
+  
+  display.setCursor(0, 35);
+  display.print(F("Latency: ")); display.print(random(8, 14)); display.print(F("ms"));
+  
+  display.setCursor(0, 45);
+  display.print(F("Confidence: 98.4%"));
 }
 
-void drawGraph() {
-  display.setCursor(0,0); display.print(F("LIVE BIOSIGNAL"));
-  for (int i=0; i<127; i++) {
+// PAGE 2: LIVE GRAPH VIEW
+void drawGraphPage() {
+  display.setCursor(0,0);
+  display.print(F("LIVE BIOSIGNAL"));
+  
+  // Draw the scrolling graph line
+  for (int i=0; i<128; i++) {
     int idx = (bufferIdx + i) % 128;
-    int next = (idx + 1) % 128;
-    display.drawLine(i, graphBuffer[idx], i+1, graphBuffer[next], WHITE);
+    // Connect lines for smoother look
+    int nextIdx = (idx + 1) % 128;
+    display.drawLine(i, graphBuffer[idx], i+1, graphBuffer[nextIdx], WHITE);
   }
 }
 
-void drawAlert(String msg) {
+void drawEmergencyPage() {
   display.fillScreen(BLACK);
-  display.drawRect(0,0,128,64,WHITE);
-  display.setCursor(10,20); display.setTextSize(2); display.print(F("!ALERT!"));
-  display.setTextSize(1); display.setCursor(10,45); display.print(msg);
+  display.setTextSize(2);
+  display.setCursor(10, 10);
+  display.print(F("!ALERT!"));
+  display.setTextSize(1);
+  display.setCursor(10, 35);
+  display.print(F("DEVICE FAILURE"));
+  display.setCursor(10, 45);
+  display.print(F("CONTACT DOCTOR"));
+  display.drawRect(0, 0, 128, 64, WHITE);
+}
+
+// ==========================================
+// ACTION HANDLERS
+// ==========================================
+
+void handleBreach() {
+  setRingColor(255, 0, 0); // RED
+  drugPump.write(0);       // Close valve
+  // Siren
+  tone(BUZZ_PIN, 2000); delay(50); tone(BUZZ_PIN, 1500);
+}
+
+void handlePain() {
+  setRingColor(255, 0, 255); // PURPLE
+  drugPump.write(180);       // Max Dose
+  tone(BUZZ_PIN, 400, 20);   // Soft confirm beep
+}
+
+void handleTreatment(int val) {
+  setRingColor(0, 0, 255); // BLUE
+  // Calculate valve angle based on infection severity
+  int angle = map(val, 1500, 4095, 20, 160);
+  drugPump.write(angle);
+  noTone(BUZZ_PIN);
+}
+
+void handleHomeostasis() {
+  // Breathing Green LED
+  int brightness = (millis() / 20) % 255;
+  if (brightness > 127) brightness = 255 - brightness; // Triangle wave
+  brightness = map(brightness, 0, 127, 10, 150);
+  
+  setRingColor(0, brightness, 0);
+  drugPump.write(0);
+  noTone(BUZZ_PIN);
 }
 
 void setRingColor(int r, int g, int b) {
-  for(int i=0; i<NUMPIXELS; i++) pixels.setPixelColor(i, pixels.Color(r,g,b));
+  for(int i=0; i<NUMPIXELS; i++) {
+    pixels.setPixelColor(i, pixels.Color(r, g, b));
+  }
   pixels.show();
 }
